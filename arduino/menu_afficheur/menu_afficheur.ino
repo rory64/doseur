@@ -4,6 +4,7 @@
 
 // LCD
 LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
+int lcd_key     = 0;
 
 bool arrosage;
 bool in_menu;
@@ -30,6 +31,13 @@ int PUMP_INVENTORY[4] = {10,} ;
 #define DEFAULT_SPEED1        250
 #define DEFAULT_SPEED2        190
 #define DEFAULT_SPEED3        130
+
+#define UP_KEY                1
+#define RIGHT_KEY             2
+#define DOWN_KEY              3
+#define LEFT_KEY              4
+#define SELECT_KEY            5
+
 
 void usine(){
   EEPROM.write(WATER_PUMP_PIN, DEFAULT_WATER_PUMP);
@@ -146,7 +154,9 @@ class pump{
 
 class preparation{};
 
-const char* menuMessage[20] = {
+
+
+const char* messageFactory[20] = {
   /* 0   */ "HOME",
   /* 1   */ "COMPOSANTS",
   /* 2   */ "REGLAGES",
@@ -176,36 +186,43 @@ typedef struct menuItem{
     int down_id;
     int select_id;
     int widget_id;
-    bool exclusive;
     int address;
     int max_val;
     bool nullable;
-    bool need_confirm; 
     // Program
 } menuItem;
 
 
 const menuItem structure[14] =  {
-  // id      title, subtitle,parent_id, up_id, down_id, select_id, widget,  exclusive,            address, max_val, nullable,  need_confirm
-  /* 0   */{     0,       14,        0,     0,       0,         1,      0,          0,                  0,       0,        0,             0  },
-  /* 1   */{     2,       15,        0,     1,       2,         4,      0,          0,                  0,       0,        0,             0  },
-  /* 2   */{     2,        1,        0,     1,       3,         0,      0,          0,                  0,       0,        0,             0  },
-  /* 3   */{     2,        3,        0,     2,       3,         0,      0,          0,                  0,       0,        0,             0  },
-  /* 4   */{     1,       16,        2,     4,       7,         8,      2,          1,                  0,       0,        0,             1  }, 
-  /* 5   */{     4,       16,        7,     8,       9,         8,      3,          1,                  0,      10,        0,             1  },
-  /* 6   */{     5,       16,        7,     8,       9,         9,      4,          1,                  0,       4,        1,             1  },
-  /* 7   */{     6,       16,        7,     8,       9,         9,      5,          1,                  0,     255,        0,             1  },
+  // id  description             title, subtitle,parent_id, up_id, down_id, select_id, widget,            address, max_val, nullable
+  /* 0   HOME                */{     0,       14,       -1,    -1,      -1,         1,      0,                  0,       0,        0  },
+  /* 1   REGLAGES CULTURE    */{     2,       15,        0,     1,       2,         8,      0,                  0,       0,        0  },
+  /* 2   REGLAGES COMPOSANTS */{     2,        1,        0,     1,       3,         4,      0,                  0,       0,        0  },
+  /* 3   REGLAGES SETTINGS   */{     2,        3,        0,     2,       3,        11,      0,                  0,       0,        0  },
+  /* 4   COMPOSANTS          */{     1,       16,        2,    -1,      -1,         5,      0,                  0,       0,        0  }, 
+  /* 5     NAME              */{     4,       16,        4,    -1,       6,        -1,      0,                  0,      10,        0  },
+  /* 6     PUMP              */{     5,       16,        4,     5,       7,        -1,      0,                  0,       4,        1  },
+  /* 7     QTY               */{     6,       16,        4,     6,      -1,        -1,      0,                  0,     255,        0  },
   //WATER SETTINGS
-  /* 8   */{     7,       10,        1,     4,       5,         4,      1,          0,WATER_PUMP_PIN     ,       4,        0,             1  }, 
-  /* 9   */{     8,       10,        1,     4,       6,         5,      1,          0,WATER_QTY_PIN      ,       5,        0,             1  },
-  /* 10  */{     9,       10,        1,     5,       6,         6,      1,          0,SENSOR_DELAY_PIN   ,     255,        0,             1  },
-  /* 11  */{    12,       11,        3,     2,       5,         4,      1,          0,                  2,       0,        0,             0  },
-  /* 12  */{    13,       12,        3,     1,       4,         6,      5,          0,                  2,       0,        0,             0  }
+  /* 8   WATER PUMP ID       */{     7,       10,        1,    -1,       9,        -1,      1,WATER_PUMP_PIN     ,       4,        0  }, 
+  /* 9   WATER QTY           */{     8,       10,        1,     8,      10,        -1,      1,WATER_QTY_PIN      ,       5,        0  },
+  /* 10  SENSOR DELAY        */{     9,       10,        1,     9,      -1,        -1,      1,SENSOR_DELAY_PIN   ,     255,        0  },
+  /* 11  CALIBRATION         */{    12,       11,        3,    -1,       12,       -1,      1,                  2,       0,        0  },
+  /* 12  FACTORY SETTINGS    */{    13,       12,        3,    11,      -1,         6,      5,                  2,       0,        0  }
 };
-    
+
+
 class menuWidget{
   protected:
-    bool widget_on = 0;
+      int menu;
+      void set_title(char text[16]){
+      lcd.setCursor(0,0);
+      lcd.print(fill_line(text));
+    }
+    void set_subtitle(char text[16]){
+        lcd.setCursor(0,1);
+        lcd.print(fill_line(text));
+    }  
     String fill_line(char text[16]){
       int len = String(text).length();
       String message;
@@ -218,67 +235,54 @@ class menuWidget{
       }  
       return message;    
     }
-    void set_title(char text[16]){
-      lcd.setCursor(0,0);
-      lcd.print(fill_line(text));
-    }
-    void set_subtitle(char text[16]){
-        lcd.setCursor(0,1);
-        lcd.print(fill_line(text));
-    }
   private:
-    int target = 0;
-
-    void up_action(){
-      reload = 1;
-      target = current_item.up_id; 
-    }
-    void right_action(){
-    }
-    void down_action(){
-      reload = 1;
-      target = current_item.down_id; 
-    }
-    void left_action(){
-      reload = 1;
-      target = current_item.parent_id;
-    }
-    void select_action(){
-      reload = 1;
-      target = current_item.select_id; 
-    } 
-  public:
-    bool reload = 0;
-    menuItem current_item;
     
-    void init(menuItem item){
-      current_item = item;
-      bool reload = 0;
-      int target = 0;
-      set_title(menuMessage[current_item.title]);
-      set_subtitle(menuMessage[current_item.subtitle]);
-    };
-    int need_reload(){
-      return reload;
-    };
-    int get_target(){
-      return target;
-    };
-    void key_signal(int key){
+    int up_action(){
+      int next_id;
+      next_id = structure[menu].up_id; 
+      return next_id;
+    }
+    int right_action(){
+      return -1;
+    }
+    int down_action(){
+      int next_id;
+      next_id = structure[menu].down_id; 
+      return next_id;
+    }
+    int left_action(){
+      int next_id;
+      next_id = structure[menu].parent_id; 
+      return next_id;
+    }
+    int select_action(){
+      int next_id;
+      next_id = structure[menu].select_id; 
+      return next_id;
+    } 
+    
+  public:
+    void set_menu(int menu_id){
+      Serial.println(menu_id);
+      menu = menu_id;
+      set_title(messageFactory[structure[menu].title]);
+      set_subtitle(messageFactory[structure[menu].subtitle]);
+    }
+    int key_signal(int key){
       switch(key){
-        case 1:
-          up_action();
-        case 2:
-          right_action();
+        case UP_KEY:
+          return up_action();
+        case RIGHT_KEY:
+          return right_action();
           break;
-        case 3:
-          down_action();
+        case DOWN_KEY:
+          return down_action();
           break;
-        case 4:
-          left_action();
+        case LEFT_KEY:
+          return left_action();
           break;
-        case 5:
-          select_action();
+        case SELECT_KEY:
+          return select_action();
           break;
       }
     }
@@ -343,32 +347,34 @@ class menuWidgetInteger: public menuWidget{
       }      
     } 
     void up_action(){
-      if (editing == 1){ }
+      if (editing == 0){ 
+        int next_id = -1;
+        next_id = structure[menu].up_id; 
+        return next_id;
+      }
+      return -1;
     }
     void right_action(){
       if (editing == 1){ }
     }
     void down_action(){
-        if (editing == 0){ }
+      Serial.println("DOWN");
+      if (editing == 0){ 
+       int next_id = -1;
+       next_id = structure[menu].down_id; 
+       return next_id;
       }
+    }
     void left_action(){
-      if (editing == 1){ }
+      if (editing == 0){ 
+        int next_id = -1;
+        next_id = structure[menu].parent_id; 
+        return next_id;
+      }
     }
     void select_action(){
-      /*if (current_item.action == 0){
-        load(current_item.select_id);        
-      }
-      else {
-        // Entree / Sortie de l'édition
-        if (editing == 0){
-          if (current_item.need_confirm == 1 ){ toggle_editing();} 
-          else if (current_item.need_confirm == 0){ function_factory();}
-          else if (editing == 0 && current_item.exclusive == 1){ function_factory();}
-        }
-        else {
-          toggle_editing();
-        }
-      }  */  
+      Serial.println("TOGGLE");
+      toggle_editing();
     } 
   public:
 };
@@ -377,89 +383,63 @@ class widgetFactory{
     int widget_id = -1;
     menuWidget* widget;
   public:
-    load(menuItem item){
-      if (widget_id == item.widget_id){
-        widget -> init(item);
-      }
-      else{
-        Serial.println(item.title);
-        widget_id = item.widget_id;
+    key_signal(int key){
+      return widget -> key_signal(key);
+    }
+    set_menu(int id){
+      widget -> set_menu(id);
+    }
+    load(int id){
+      if (widget_id != id){
+        widget_id = id;
         switch(widget_id){
-        case 0:
-          widget = new menuWidget();
-          break;
-        case 1:
-          widget = new menuWidgetInteger();
-          break;
-        }      
-        widget -> init(item);
-      }
+          case 0:
+            widget = new menuWidget();
+            break;
+          case 1:
+            widget = new menuWidgetInteger();
+            break;
+        }
+        return widget;   
+      }   
     }
 };
 
-class menu_controller{
-  private: 
-    int lcd_key     = 0;
-  
+
+class menuController{
+  private:
+    boolean reload = 0;
+    int next_id = 0;
+    int item_id = -1;
+    menuItem current_item;
+
+    int widget_id = -1;
     widgetFactory widget_factory;
-    menuWidget* widget;
-    int current_id;
-    int choice;
     
-    void start_menu(){ select_menu();};
-    
-    void up(){ choice = 1;};
-    void right(){ choice = 2;};
-    void down(){ choice = 3;};
-    void left(){ choice = 4;};
-    void select(){ choice = 5;};
-    
-    void select_menu(int menu_id = 0){
-      current_id = menu_id;
-      widget = widget_factory.load(structure[menu_id]);
+    void set_widget(){
+        widget_id = current_item.widget_id;
+        widget_factory.load(widget_id);
+        widget_factory.set_menu(item_id);
     }
-    
-    void do_action(){
-      Serial.println(widget -> need_reload());
-        if (widget -> need_reload() == 1){
-          select_menu(widget -> get_target());
-        }
-        else if (choice != 0){ 
-          widget->key_signal(choice);
-        }
-    };
   public:
-    void init(){
-      start_menu();
+    int factory(int key){
+      return widget_factory.key_signal(key);
     }
-    void listen(){
-      choice = 0;
-      // always refresh (related field)
-       int x = analogRead (0);
-      //Check analog values from LCD Keypad Shield
-      if (x < 50) {
-        right();
-      }
-      else if (x < 150) {
-        up();
-      }
-      else if (x < 300){
-        down();
-      }
-      else if (x < 500){
-        left();
-      }
-      else if (x < 800){
-       select();
-      }
-      do_action();
-      delay(500);
+    
+    int to_load(int id){
+      if (id > -1){ return id;}
+      else { return next_id;}
     };
+    void load(int id){
+      item_id = to_load(id);
+      current_item = structure[item_id];
+      set_widget();
+    };      
 };
 
 
 pump Pompe(1);
-menu_controller menu;
+menuController menu;
 
 void setup(){
   lcd.begin(16, 2);
@@ -475,11 +455,12 @@ void setup(){
   EEPROM.write(4,180);
   EEPROM.write(5,130);*/
 
-  menu.init();
+  menu.load(0);
 }
 void loop(){
   if (arrosage == 0){
-    menu.listen();
+    int key = listen();
+    if (key > 0){ key_pushed(key);}
   }
   if (in_menu == 0){
     bool start = need_water();
@@ -487,6 +468,33 @@ void loop(){
   delay(200);
 }
 
+int listen(){
+  int x = analogRead (lcd_key);
+  if (x < 50) {
+    return RIGHT_KEY;
+  }
+  else if (x < 150) {
+    return UP_KEY;
+  }
+  else if (x < 300){
+    return DOWN_KEY;
+  }
+  else if (x < 500){
+    return LEFT_KEY;
+  }
+  else if (x < 800){
+    return SELECT_KEY;
+  }
+  return 0;
+  delay(500);
+};
+void key_pushed(int key){
+  int action = menu.factory(key);
+  if (action > -1){
+    menu.load(action);
+    delay(500);
+  }
+}
 bool need_water(){
   return 0;
   };
