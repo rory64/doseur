@@ -20,7 +20,8 @@ bool in_menu;
 #define PHASE_START_PIN           60
 #define PHASE_LINE_START_PIN      90
 // Components
-#define COMPONENT_START_PIN       270 // 20 addresses by component
+#define COMPONENT_START_PIN       270 // 18 addresses by component
+#define COMPONENT_WORD_LENGTH     18 // 18 addresses by component
 
 //DEFINE WORDS SIZE
 int PUMP_INVENTORY[4] = {10,} ;           
@@ -43,6 +44,38 @@ void usine(){
   EEPROM.write(WATER_PUMP_PIN, DEFAULT_WATER_PUMP);
   EEPROM.write(WATER_QTY_PIN, DEFAULT_WATER_QTY);
   EEPROM.write(SENSOR_DELAY_PIN, DEFAULT_SENSOR_DELAY);
+
+  EEPROM.write(COMPONENT_START_PIN, 66);
+  EEPROM.write(COMPONENT_START_PIN + 1, 73);
+  EEPROM.write(COMPONENT_START_PIN + 2, 79);
+  EEPROM.write(COMPONENT_START_PIN + 3, 70);
+  EEPROM.write(COMPONENT_START_PIN + 4, 73);
+  EEPROM.write(COMPONENT_START_PIN + 5, 83);
+  EEPROM.write(COMPONENT_START_PIN + 6, 72);
+  EEPROM.write(COMPONENT_START_PIN + 7, 32);
+  EEPROM.write(COMPONENT_START_PIN + 8, 32);
+  EEPROM.write(COMPONENT_START_PIN + 9, 32);
+  EEPROM.write(COMPONENT_START_PIN + 10, 32);
+  EEPROM.write(COMPONENT_START_PIN + 11, 32);
+  EEPROM.write(COMPONENT_START_PIN + 12, 32);
+  EEPROM.write(COMPONENT_START_PIN + 13, 32);
+  EEPROM.write(COMPONENT_START_PIN + 14, 32);
+  EEPROM.write(COMPONENT_START_PIN + 15, 32);
+  EEPROM.write(COMPONENT_START_PIN + 18, 70);
+  EEPROM.write(COMPONENT_START_PIN + 19, 79);
+  EEPROM.write(COMPONENT_START_PIN + 20, 70);
+  EEPROM.write(COMPONENT_START_PIN + 21, 79);
+  EEPROM.write(COMPONENT_START_PIN + 22, 73);
+  EEPROM.write(COMPONENT_START_PIN + 23, 72);
+  EEPROM.write(COMPONENT_START_PIN + 24, 32);
+  EEPROM.write(COMPONENT_START_PIN + 25, 32);
+  EEPROM.write(COMPONENT_START_PIN + 26, 32);
+  EEPROM.write(COMPONENT_START_PIN + 27, 32);
+  EEPROM.write(COMPONENT_START_PIN + 28, 32);
+  EEPROM.write(COMPONENT_START_PIN + 29, 32);
+  EEPROM.write(COMPONENT_START_PIN + 30, 32);
+  EEPROM.write(COMPONENT_START_PIN + 31, 32);
+  EEPROM.write(COMPONENT_START_PIN + 32, 32);
 };
 
 class phase{};
@@ -148,7 +181,11 @@ class pump{
 
 class preparation{};
 
-
+// ------------------------------
+// ----- MENU SECTION START -----
+// ------------------------------
+int row = 0;
+int col = 0;
 
 const char* messageFactory[20] = {
   /* 0   */ "HOME",
@@ -186,12 +223,11 @@ typedef struct menuItem{
     // Program
 } menuItem;
 
-
 const menuItem structure[14] =  {
   // id  description             title, subtitle,parent_id, up_id, down_id, select_id, widget,            address, max_val, nullable
   /* 0   HOME                */{     0,       14,       -1,    -1,      -1,         1,      0,                  0,       0,        0  },
   /* 1   REGLAGES CULTURE    */{     2,       15,        0,     1,       2,         8,      0,                  0,       0,        0  },
-  /* 2   REGLAGES COMPOSANTS */{     2,        1,        0,     1,       3,         4,      0,                  0,       0,        0  },
+  /* 2   REGLAGES COMPOSANTS */{     2,        1,        0,     1,       3,         4,      2,                  0,       0,        0  },
   /* 3   REGLAGES SETTINGS   */{     2,        3,        0,     2,       3,        11,      0,                  0,       0,        0  },
   /* 4   COMPOSANTS          */{     1,       16,        2,    -1,      -1,         5,      0,                  0,       0,        0  }, 
   /* 5     NAME              */{     4,       16,        4,    -1,       6,        -1,      0,                  0,      10,        0  },
@@ -205,100 +241,91 @@ const menuItem structure[14] =  {
   /* 12  FACTORY SETTINGS    */{    13,       12,        3,    11,      -1,         6,      5,                  2,       0,        0  }
 };
 
-
 class menu{
   protected:
-    int menu;
+    int id;
+    int next_id = -1;
     void set_title(char text[16], int center=1){
-      lcd.setCursor(0,0);
+      row = 0;
+      col = 0;
       print_line(text, center);
     }
     void set_subtitle(char text[16], int center=1){
-      lcd.setCursor(0,1);
+      row = 1;
+      col = 0;
       print_line(text, center);
     }  
+    void toggle_editing(){
+      if (editing == 0){
+        confirm_editing();
+      }
+      else if (editing == 1){ 
+        editing = 0; 
+        exit_editing();
+      }      
+    } 
+  private:    
     void print_line(char text[16], int center=1){
+      lcd.setCursor(col, row);
       if (center == 0){ lcd.print(text);}
       if (center == 1){ lcd.print(center_line(text));}      
     }
     String center_line(char text[16]){
       int len = String(text).length();
       String message;
-      while (message.length() < (16 - len) / 2){
-        message.concat(" ");
-      }
-      message.concat(text);
-      while (message.length() < 16){
-        message.concat(" ");
+      if (message.length() < 16){
+        while (message.length() < (16 - len) / 2){
+          message.concat(" ");
+        }
+        message.concat(text);
+        while (message.length() < 16){
+          message.concat(" ");
+        }   
       }  
-      return message;    
+      else { message.concat(text);}
+      return message; 
     }
-  private:    
-    int up_action(){};
-    int right_action(){};
-    int down_action(){};
-    int left_action(){};
-    int select_action(){} ;
-    
+    void confirm_editing(){
+      editing = 1;
+      Serial.print("<< EDITING ACTIVATED >>");
+    }
+    void exit_editing(){
+      editing = 0;      
+      Serial.print("<< EDITING STOPPED >>");
+    }
   public:
-    void set_menu(int menu_id){};
-    int key_signal(int key){};
+    int editing = 0;
 };
 
 class menuWidget: public menu{
-  protected:
-      int menu;
-      void set_title(char text[16]){
-      lcd.setCursor(0,0);
-      lcd.print(fill_line(text));
-    }
-    void set_subtitle(char text[16]){
-        lcd.setCursor(0,1);
-        lcd.print(fill_line(text));
-    }  
-    String fill_line(char text[16]){
-      int len = String(text).length();
-      String message;
-      while (message.length() < (16 - len) / 2){
-        message.concat(" ");
-      }
-      message.concat(text);
-      while (message.length() < 16){
-        message.concat(" ");
-      }  
-      return message;    
-    }
   private:    
     int up_action(){
-      int next_id;
-      next_id = structure[menu].up_id; 
+      next_id = structure[id].up_id; 
       return next_id;
     }
     int right_action(){
       return -1;
     }
     int down_action(){
-      int next_id;
-      next_id = structure[menu].down_id; 
+      next_id = structure[id].down_id; 
       return next_id;
     }
     int left_action(){
-      int next_id;
-      next_id = structure[menu].parent_id; 
+      next_id = structure[id].parent_id; 
       return next_id;
     }
     int select_action(){
-      int next_id;
-      next_id = structure[menu].select_id; 
+      next_id = structure[id].select_id; 
       return next_id;
     } 
     
   public:
     void set_menu(int menu_id){
-      Serial.println("BEGIN SIMPLE WIDGET");
-      menu = menu_id;
-      set_title(messageFactory[structure[menu].title]);
-      set_subtitle(messageFactory[structure[menu].subtitle]);
+      Serial.print("BEGIN SIMPLE WIDGET - MENU ID : ");
+      Serial.println(menu_id);
+      id = menu_id;
+      set_title(messageFactory[structure[id].title], 1);
+      set_subtitle(messageFactory[structure[id].subtitle], 1);
     }
     int key_signal(int key){
       if (key == -1){ return -1; }
@@ -306,6 +333,7 @@ class menuWidget: public menu{
         switch(key){
           case UP_KEY:
             return up_action();
+            break;
           case RIGHT_KEY:
             return right_action();
             break;
@@ -324,37 +352,26 @@ class menuWidget: public menu{
 };
 class menuWidgetInteger: public menu{
   private:
-  int editing = 0;
-    int eeprom_address = 0;
-    int max_val = 0;
+    int max_val = 255;
     bool nullable = 0;
-    void confirm_editing(){
-      editing = 1;
-      Serial.println("Start editing");
-      show_integer_widget();      
-    }
-    void exit_editing(){
-      editing = 0;      
-      Serial.println("End editing");
-    }
     // integer ml : update qty
     // Refresh value after update
     void update_eeprom_value(int ml=0){
       Serial.println("Update EEPROM Value");
-      int val = EEPROM.read(eeprom_address);
-      if (1 - nullable <= val + ml &&  val + ml <= max_val) {
-        EEPROM.write(eeprom_address, val + ml); 
+      int val = EEPROM.read(structure[id].address);
+      if (1 - structure[id].nullable <= val + ml &&  val + ml <= structure[id].max_val) {
+        EEPROM.write(structure[id].address, val + ml); 
       }
       show_integer_widget();
     }
     void show_integer_widget(){
       Serial.println("Start show widget");
-        int val = EEPROM.read(eeprom_address);
+        int val = EEPROM.read(structure[id].address);
         String val_str = String(val, DEC);
         int val_len = val_str.length();
         
         String message;
-        if (val > 1 - nullable){ message.concat("-");}
+        if (val > 1 - structure[id].nullable){ message.concat("-");}
         else { message.concat(" ");}
         message.concat("     ");
         if (val_len < 4){ message.concat(" ");}
@@ -363,7 +380,7 @@ class menuWidgetInteger: public menu{
         if (val_len == 2){ message.concat(" ");}
         if (val_len == 1){ message.concat(" ");}
         message.concat("     ");
-        if (max_val == val){ message.concat(" ");}
+        if (structure[id].max_val == val){ message.concat(" ");}
         else { message.concat("+");}
 
         char text[17];
@@ -371,61 +388,58 @@ class menuWidgetInteger: public menu{
         set_subtitle(text);
         Serial.println("Stop show widget");
     }
-    void toggle_editing(){
-      if (editing == 0){
-        confirm_editing();
-      }
-      else if (editing == 1){ 
-        editing = 0; 
-        exit_editing();
-      }      
-    } 
     int up_action(){
       if (editing == 0){ 
-        int next_id = -1;
-        next_id = structure[menu].up_id; 
+        next_id = structure[id].up_id; 
         return next_id;
       }
       return -1;
     }
     int right_action(){
-      if (editing == 1){ }
+      if (editing == 1){
+        update_eeprom_value(1);
+        return -1;
+      }
     }
     int down_action(){
       if (editing == 0){ 
-       int next_id = -1;
-       next_id = structure[menu].down_id; 
+       next_id = structure[id].down_id; 
        return next_id;
       }
+      else { return -1; }
     }
     int left_action(){
       if (editing == 1){
         update_eeprom_value(-1);
+        return -1;
+      }
+      else {        
+        next_id = structure[id].parent_id; 
+        return next_id;
       }
     }
     int select_action(){
       toggle_editing();
-      if (editing == 0){ return menu; }
+      if (editing == 0){ return id; }
       else {
         show_integer_widget();
         return -1;
       }
     }
   public:
-    void set_menu(int menu_id, int edit){
-      editing = edit;
-      eeprom_address = structure[menu].address;
-      Serial.println("BEGIN INTEGER WIDGET");
-      if (editing == 1){ Serial.print("<< EDITING ACTIVATED >>");}
-      menu = menu_id;
-      set_title(messageFactory[structure[menu].title]);
-      set_subtitle(messageFactory[structure[menu].subtitle]);
+    void set_menu(int menu_id){
+      Serial.print("BEGIN INTEGER WIDGET - MENU ID : ");
+      Serial.println(menu_id);
+      id = menu_id;
+      set_title(messageFactory[structure[id].title]);
+      set_subtitle(messageFactory[structure[id].subtitle]);
     }
     int key_signal(int key, int edit){
       editing = edit;
       switch(key){
         case UP_KEY:
           return up_action();
+          break;
         case RIGHT_KEY:
           return right_action();
           break;
@@ -441,35 +455,196 @@ class menuWidgetInteger: public menu{
       }
     }
 };
+class menuWidgetComponent: public menu{
+  private:
+    int item_id;
+    char item_name[16];
+    int mode;
 
+    void action_factory(){
+      switch(mode){
+        case 0:
+          list();
+          break;
+        case 1:
+          action_create();
+          break;
+        case 2:
+          action_read();
+          break;
+        case 3:
+          action_update();
+          break;
+        case 4:
+          action_delete();
+          break;
+      }
+    }
+
+    void get_name(){
+      String result;
+      int count = 0;
+      int start = COMPONENT_START_PIN + (COMPONENT_WORD_LENGTH * item_id);
+      
+      while(count < 16){
+        result.concat(char(EEPROM.read(start + count)));
+        count += 1;
+      }
+      result.toCharArray(item_name, 16);
+    }
+
+    void list(){
+      col = 0;
+      row = 0;
+
+      get_name();
+      set_title(item_name, 0);
+    }
+    void set_next_item(){
+      item_id += 1;
+    }
+    void set_previous_item(){
+      item_id -= 1;
+    }
+    
+    void action_create(){}
+    void action_read(){}
+    void action_update(){}
+    void action_delete(){}
+    
+    int up_action(){
+      if (editing == 0){ 
+       next_id = structure[id].down_id; 
+       return next_id;
+      }
+      else { 
+        set_previous_item();
+        action_factory();
+        return -1; 
+      }
+    }
+    int right_action(){
+      if (editing == 1){
+        return -1;
+      }
+    }
+    int down_action(){
+      if (editing == 0){ 
+       next_id = structure[id].down_id; 
+       return next_id;
+      }
+      else { 
+        set_next_item();
+        action_factory();
+        return -1; 
+      }
+    }
+    int left_action(){
+      if (editing == 1){
+        return -1;
+      }
+      else {        
+        next_id = structure[id].parent_id; 
+        return next_id;
+      }
+    }
+    int select_action(){
+      toggle_editing();
+      if (editing == 0){ return id; }
+      else {
+        list();
+        return -1;
+      }
+    }
+  public:
+    int get_item(){
+      return item_id;
+    }
+    int get_mode(){
+      return mode;
+    }
+    void set_menu(int menu_id){
+      Serial.print("BEGIN CRUD WIDGET - MENU ID : ");
+      Serial.println(menu_id);
+      id = menu_id;
+      item_id = 0;
+      mode = 0;
+      set_title(messageFactory[structure[id].title], 1);
+      set_subtitle(messageFactory[structure[id].subtitle], 1);      
+    }
+    int key_signal(int key, int _edit, int _item_id, int _mode){
+      editing = _edit;
+      item_id = _item_id;
+      mode = _mode;
+      switch(key){
+        case UP_KEY:
+          return up_action();
+          break;
+        case RIGHT_KEY:
+          return right_action();
+          break;
+        case DOWN_KEY:
+          return down_action();
+          break;
+        case LEFT_KEY:
+          return left_action();
+          break;
+        case SELECT_KEY:
+          return select_action();
+          break;
+      }
+      
+      Serial.print("COMPONENT ID : ");
+      Serial.println(item_id);
+      Serial.println("-------------------------");
+      Serial.println(" ");
+    }
+};
 class widgetFactory{
   private:
     int editing = 0;
+    int item_id = 0;
+    int mode = 0;
   public:
     load(int menu_id, int key){
       Serial.print("KEY SIGNAL RECEIVED : ");
       Serial.println(key);
-      Serial.print("MENU ID : ");
-      Serial.println(menu_id);
       menuItem menu;
       menu = structure[menu_id];
       switch(menu.widget_id){
         case 0:
-          menuWidget simpleMenu;
+          {menuWidget simpleMenu;
           simpleMenu.set_menu(menu_id);
           if (key > -1){ return simpleMenu.key_signal(key); }
           else { return -1; }
-          break;
+          break;}
         case 1:
-          menuWidgetInteger integerMenu;
-          integerMenu.set_menu(menu_id, editing);
-          if (key > -1){ return integerMenu.key_signal(key, editing); }
+          {menuWidgetInteger integerMenu;
+          integerMenu.set_menu(menu_id);
+          if (key > -1){ 
+            int response = integerMenu.key_signal(key, editing);
+            editing = integerMenu.editing;
+            return response;
+          }
           else { return -1; }
-          break;
+          break;}
+        case 2:
+          {menuWidgetComponent component;
+          component.set_menu(menu_id);
+          if (key > -1){ 
+      Serial.println(editing);
+            int response = component.key_signal(key, editing, item_id, mode);
+            editing = component.editing;
+      Serial.println(editing);
+            item_id = component.get_item();
+            mode = component.get_mode();
+            return response;
+          }
+          else { return -1; }
+          break;}
         }
      }
 };
-
 
 class menuController{
   private:
@@ -496,15 +671,20 @@ class menuController{
     };      
 };
 
+menuController menu;
+// ------------------------------
+// ------ MENU SECTION STOP -----
+// ------------------------------
 
 pump Pompe(1);
-menuController menu;
 
 void setup(){
   lcd.begin(16, 2);
   lcd.clear();
 
   Serial.begin(9600);
+
+  usine();
 
   /*
   EEPROM.write(10,20);
